@@ -32,6 +32,12 @@ func NewUrlShortner(hasher Hasher) *UrlShortner {
 		hasher:           hasher,
 	}
 }
+func NewUrlShortnerWithDefaultHasher() *UrlShortner {
+	return &UrlShortner{
+		webSiteMapperMap: make(map[string]*Mapper),
+		hasher:           URLHasher{},
+	}
+}
 
 func (urlShtnr *UrlShortner) ShortenValue(originalValue string) (string, error) {
 	// now first i need to find which is start website , and which is extended key
@@ -74,10 +80,40 @@ func (urlShtnr *UrlShortner) ShortenValue(originalValue string) (string, error) 
 
 }
 
+func (urlShtnr *UrlShortner) OriginalValue(shortenedValue string) (string, error) {
+	// first we need to find which website this shortened value belongs to
+	parts := strings.Split(shortenedValue, "/")
+	// if url not devided into 2 parts then it's not shortned url
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid shortened URL format : %s", shortenedValue)
+	}
+	website := parts[0]
+	// now we will check if mapper present for this website or not
+	websiteMapper, exists := urlShtnr.webSiteMapperMap[website]
+	if !exists {
+		return "", fmt.Errorf("no mapping found for website: %s", website)
+	}
+	// now we will check if shortened value present in shortened Mapper if it's present
+	if originalValue, exists := websiteMapper.shortenedToOriginal[parts[1]]; exists {
+		return originalValue, nil
+	}
+	return "", fmt.Errorf("shortened value not found: %s", shortenedValue)
+}
+
 type Hasher interface {
 	Hash(value string) (string, error)
 }
 
 type URLHasher struct {
-	// hashign alogorithm
+}
+
+func (hasher URLHasher) Hash(value string) (string, error) {
+	// here i will use normal hashing mechnism where i will take sum of all between
+	// characters and then convert it to string
+	var hash uint64 = 0
+	for i := 0; i < len(value); i++ {
+		hash = hash*31 + uint64(value[i])
+	}
+
+	return fmt.Sprintf("%d", hash), nil
 }
