@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -10,7 +11,7 @@ import (
 type ShortnerService interface {
 	ShortenValue(originalValue string) (string, error)
 	OriginalValue(shortenedValue string) (string, error)
-	Metrics(shortenedValue string) (map[string]int, error)
+	Metrics() (map[string]int, error)
 }
 
 type Mapper struct {
@@ -23,20 +24,6 @@ type UrlShortner struct {
 	// this will conatins 2 things one is webSiteMapperMap and other is Hasher
 	webSiteMapperMap map[string]*Mapper
 	hasher           Hasher
-}
-
-// NewUrlShortner creates a new UrlShortner instacnce with hasher of it's own and webSiteMapper
-func NewUrlShortner(hasher Hasher) *UrlShortner {
-	return &UrlShortner{
-		webSiteMapperMap: make(map[string]*Mapper),
-		hasher:           hasher,
-	}
-}
-func NewUrlShortnerWithDefaultHasher() *UrlShortner {
-	return &UrlShortner{
-		webSiteMapperMap: make(map[string]*Mapper),
-		hasher:           URLHasher{},
-	}
 }
 
 func (urlShtnr *UrlShortner) ShortenValue(originalValue string) (string, error) {
@@ -100,6 +87,39 @@ func (urlShtnr *UrlShortner) OriginalValue(shortenedValue string) (string, error
 	return "", fmt.Errorf("shortened value not found: %s", shortenedValue)
 }
 
+type Metrics struct {
+	website string
+	count   int
+}
+
+func (urlShtnr *UrlShortner) Metrics() (map[string]int, error) {
+	// define array of metrics
+	metrics := make([]Metrics, len(urlShtnr.webSiteMapperMap))
+	// now adding values in the metrics
+	for website, mapper := range urlShtnr.webSiteMapperMap {
+		metrics = append(metrics, Metrics{
+			website: website,
+			count:   len(mapper.originalToShortened),
+		})
+	}
+	// now sorting teh metrics by count in descending order
+	sort.Slice(metrics, func(i, j int) bool {
+		return metrics[i].count > metrics[j].count
+	})
+	result := make(map[string]int)
+	// now we will create a map of metrics
+	var output []Metrics
+	if len(metrics) > 3 {
+		output = metrics[:3]
+	} else {
+		output = metrics
+	}
+	for _, metric := range output {
+		result[metric.website] = metric.count
+	}
+	return result, nil
+}
+
 type Hasher interface {
 	Hash(value string) (string, error)
 }
@@ -116,4 +136,15 @@ func (hasher URLHasher) Hash(value string) (string, error) {
 	}
 
 	return fmt.Sprintf("%d", hash), nil
+}
+
+// NewUrlShortner creates a new UrlShortner instacnce with hasher of it's own and webSiteMapper
+func NewUrlShortner() ShortnerService {
+	if shortnerService == nil {
+		shortnerService = &UrlShortner{
+			webSiteMapperMap: make(map[string]*Mapper),
+			hasher:           URLHasher{},
+		}
+	}
+	return shortnerService
 }
