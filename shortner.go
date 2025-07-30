@@ -50,7 +50,7 @@ func (urlShtnr *UrlShortner) ShortenValue(originalValue string) (string, error) 
 	// now we will check if original value present in original Mapper if it's present
 	// then we can use it and return shortned value
 	if shortenedValue, exists := websiteMapper.originalToShortened[originalValue]; exists {
-		return shortenedValue, nil
+		return website + "/" + shortenedValue, nil
 	}
 	// if not exists then now call the hasher and create the hasher
 	shortenedValue, err := urlShtnr.hasher.Hash(originalValue)
@@ -96,11 +96,13 @@ func (urlShtnr *UrlShortner) Metrics() (map[string]int, error) {
 	// define array of metrics
 	metrics := make([]Metrics, len(urlShtnr.webSiteMapperMap))
 	// now adding values in the metrics
+	i:=0
 	for website, mapper := range urlShtnr.webSiteMapperMap {
-		metrics = append(metrics, Metrics{
+		metrics[i] = Metrics{
 			website: website,
 			count:   len(mapper.originalToShortened),
-		})
+		}
+		i++
 	}
 	// now sorting teh metrics by count in descending order
 	sort.Slice(metrics, func(i, j int) bool {
