@@ -13,4 +13,5 @@ This repo contains the code related to url shortner
         2. Then we are setting few envioments just to make sure go can run successfully
         3. then creating binary of go to run
         4. giving CMD so that same can start at docker run called.
+3. Added Unit Test to check UrlShortner behaviour
  
